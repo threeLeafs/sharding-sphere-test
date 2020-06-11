@@ -1,0 +1,88 @@
+spring:
+  shardingsphere:
+    datasource:
+      names: ds-master1,ds-master1-slave1,ds-master1-slave2,ds-master2,ds-master2-slave1,ds-master2-slave2
+      ############################################ <database1> ###################################################
+      ####可以像我下面这么写ds-****,不可以这么写ds_****,会报错的
+      ds-master1:
+        type: com.alibaba.druid.pool.DruidDataSource
+        driver-class-name: com.mysql.cj.jdbc.Driver
+        url: jdbc:mysql://localhost:3306/one_master?useUnicode=true&characterEncoding=utf-8&useSSL=false&serverTimezone=GMT
+        username: root
+        password: 123456
+      ds-master1-slave1:
+        type: com.alibaba.druid.pool.DruidDataSource
+        driver-class-name: com.mysql.cj.jdbc.Driver
+        url: jdbc:mysql://localhost:3306/one_slave1?useUnicode=true&characterEncoding=utf-8&useSSL=false&serverTimezone=GMT
+        username: root
+        password: 123456
+      ds-master1-slave2:
+        type: com.alibaba.druid.pool.DruidDataSource
+        driver-class-name: com.mysql.cj.jdbc.Driver
+        url: jdbc:mysql://localhost:3306/one_slave2?useUnicode=true&characterEncoding=utf-8&useSSL=false&serverTimezone=GMT
+        username: root
+        password: 123456
+      ############################################ <database2> ###################################################
+      ds-master2:
+        type: com.alibaba.druid.pool.DruidDataSource
+        driver-class-name: com.mysql.cj.jdbc.Driver
+        url: jdbc:mysql://localhost:3306/two_master?useUnicode=true&characterEncoding=utf-8&useSSL=false&serverTimezone=GMT
+        username: root
+        password: 123456
+      ds-master2-slave1:
+        type: com.alibaba.druid.pool.DruidDataSource
+        driver-class-name: com.mysql.cj.jdbc.Driver
+        url: jdbc:mysql://localhost:3306/two_slave1?useUnicode=true&characterEncoding=utf-8&useSSL=false&serverTimezone=GMT
+        username: root
+        password: 123456
+      ds-master2-slave2:
+        type: com.alibaba.druid.pool.DruidDataSource
+        driver-class-name: com.mysql.cj.jdbc.Driver
+        url: jdbc:mysql://localhost:3306/two_slave2?useUnicode=true&characterEncoding=utf-8&useSSL=false&serverTimezone=GMT
+        username: root
+        password: 123456
+
+
+    sharding:
+      tables:
+        ###### <user表> ######
+        user:
+          actual-data-nodes: ds$->{0..1}.user_$->{0..2}
+          table-strategy:
+            inline:
+              sharding-column: phone
+              algorithm-expression: user_$->{phone % 3}
+        ###### <user_info表> ######
+        user_info:
+          actual-data-nodes: ds$->{0..1}.user_info_$->{0..2}
+          table-strategy:
+            inline:
+              sharding-column: user_id
+              algorithm-expression: user_info_$->{user_id % 3}
+          key-generator:
+            column: id
+            type: SNOWFLAKE
+      ####默认数据库策略
+      default-database-strategy:
+        inline:
+          sharding-column: phone
+          algorithm-expression: ds$->{phone % 2}
+
+      ####绑定表>>>user表与user_info表有关系 例如:user的phone和user_info的user_id是一样的值
+      binding-tables: user,user_info
+      ####广播表>>>每个数据库都存在, 且数据都是一样的
+      broadcast-tables: dict
+      ####主从规则
+      master-slave-rules:
+        ds0:
+          master-data-source-name: ds-master1
+          slave-data-source-names: ds-master1-slave1,ds-master1-slave2
+        ds1:
+          master-data-source-name: ds-master2
+          slave-data-source-names: ds-master2-slave1,ds-master2-slave2
+    ####均衡方式
+    masterslave:
+      load-balance-algorithm-type: ROUND_ROBIN
+
+  main:
+    allow-bean-definition-overriding: true
