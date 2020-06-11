@@ -98,6 +98,7 @@ public class ApacheShardingConfig {
      * @author
      */
     private Map<String, DataSource> createDataSourceMap() throws ReflectiveOperationException {
+        System.out.println("------");
         final Map<String, DataSource> dbMap = new HashMap<>();
         dbMap.put("ds_master1", getDataSource("one_master"));
         dbMap.put("ds_master1_slave1", getDataSource("one_slave1"));
